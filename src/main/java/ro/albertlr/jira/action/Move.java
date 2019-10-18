@@ -37,7 +37,7 @@ public class Move implements Action<String> {
     @Override
     public String execute(Jira jira, String... params) {
         String jiraSourceKey = Action.paramAt(params, 0, "sourceKey");
-        String destProjectKey = Action.paramAt(params, 0, "targetProjectKey");
+        String destProjectKey = Action.paramAt(params, 1, "targetProjectKey");
 
         return doMoveIssue(jira, jiraSourceKey, destProjectKey);
     }
