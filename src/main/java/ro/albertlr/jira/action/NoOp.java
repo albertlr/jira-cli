@@ -17,24 +17,17 @@
  * limitations under the License.
  * #L%
  */
-package ro.albertlr.jira.ro.albertlr.jira.action;
+package ro.albertlr.jira.action;
 
-import com.atlassian.jira.rest.client.api.domain.Issue;
 import lombok.extern.slf4j.Slf4j;
 import ro.albertlr.jira.Action;
 import ro.albertlr.jira.Jira;
 
-import static ro.albertlr.jira.Action.paramAt;
-
 @Slf4j
-public class Get implements Action<Issue> {
+public class NoOp implements Action<Void> {
     @Override
-    public Issue execute(Jira jira, String... params) {
-        String issueKey = paramAt(params, 0, "issueKey");
-        Issue issue = jira.loadIssue(issueKey);
-
-        log.trace("Issue successfully loaded: {} - {}", issueKey, issue.getSummary());
-        return issue;
+    public Void execute(Jira jira, String... params) {
+        log.debug("NoOp action invoked");
+        return null;
     }
-
 }

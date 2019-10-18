@@ -17,9 +17,9 @@
  * limitations under the License.
  * #L%
  */
-package ro.albertlr.jira.ro.albertlr.jira.action;
+package ro.albertlr.jira.action;
 
-import com.google.common.base.Stopwatch;
+import com.atlassian.jira.rest.client.api.domain.Issue;
 import lombok.extern.slf4j.Slf4j;
 import ro.albertlr.jira.Action;
 import ro.albertlr.jira.Jira;
@@ -27,17 +27,14 @@ import ro.albertlr.jira.Jira;
 import static ro.albertlr.jira.Action.paramAt;
 
 @Slf4j
-public class Link implements Action<Void> {
+public class Get implements Action<Issue> {
     @Override
-    public Void execute(Jira jira, String... params) {
-        String jiraSourceKey = paramAt(params, 0, "sourceKey");
-        String jiraTargetKey = paramAt(params, 1, "targetKey");
-        String linkType = paramAt(params, 2, "linkType");
+    public Issue execute(Jira jira, String... params) {
+        String issueKey = paramAt(params, 0, "issueKey");
+        Issue issue = jira.loadIssue(issueKey);
 
-        Stopwatch stopwatch = Stopwatch.createStarted();
-        jira.link(jiraSourceKey, jiraTargetKey, linkType);
-        log.trace("Linking {} to {} took {}", jiraSourceKey, jiraTargetKey, stopwatch);
-
-        return null;
+        log.trace("Issue successfully loaded: {} - {}", issueKey, issue.getSummary());
+        return issue;
     }
+
 }

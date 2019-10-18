@@ -25,12 +25,12 @@ import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
-import ro.albertlr.jira.ro.albertlr.jira.action.Clone;
-import ro.albertlr.jira.ro.albertlr.jira.action.Get;
-import ro.albertlr.jira.ro.albertlr.jira.action.GetE2EsRecursively;
-import ro.albertlr.jira.ro.albertlr.jira.action.Link;
-import ro.albertlr.jira.ro.albertlr.jira.action.Move;
-import ro.albertlr.jira.ro.albertlr.jira.action.NoOp;
+import ro.albertlr.jira.action.Clone;
+import ro.albertlr.jira.action.Get;
+import ro.albertlr.jira.action.GetE2EsRecursively;
+import ro.albertlr.jira.action.Link;
+import ro.albertlr.jira.action.Move;
+import ro.albertlr.jira.action.NoOp;
 
 import java.util.Arrays;
 

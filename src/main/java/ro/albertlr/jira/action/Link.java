@@ -17,17 +17,27 @@
  * limitations under the License.
  * #L%
  */
-package ro.albertlr.jira.ro.albertlr.jira.action;
+package ro.albertlr.jira.action;
 
+import com.google.common.base.Stopwatch;
 import lombok.extern.slf4j.Slf4j;
 import ro.albertlr.jira.Action;
 import ro.albertlr.jira.Jira;
 
+import static ro.albertlr.jira.Action.paramAt;
+
 @Slf4j
-public class NoOp implements Action<Void> {
+public class Link implements Action<Void> {
     @Override
     public Void execute(Jira jira, String... params) {
-        log.debug("NoOp action invoked");
+        String jiraSourceKey = paramAt(params, 0, "sourceKey");
+        String jiraTargetKey = paramAt(params, 1, "targetKey");
+        String linkType = paramAt(params, 2, "linkType");
+
+        Stopwatch stopwatch = Stopwatch.createStarted();
+        jira.link(jiraSourceKey, jiraTargetKey, linkType);
+        log.trace("Linking {} to {} took {}", jiraSourceKey, jiraTargetKey, stopwatch);
+
         return null;
     }
 }

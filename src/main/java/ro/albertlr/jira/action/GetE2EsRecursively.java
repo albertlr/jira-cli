@@ -17,7 +17,7 @@
  * limitations under the License.
  * #L%
  */
-package ro.albertlr.jira.ro.albertlr.jira.action;
+package ro.albertlr.jira.action;
 
 import com.atlassian.jira.rest.client.api.domain.Issue;
 import com.atlassian.jira.rest.client.api.domain.IssueLink;
