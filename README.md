@@ -45,3 +45,11 @@ Clones a ticket and moves it to another project (it creates the ticket directly 
 ./jira-move.sh <SOURCE_TICKET_ID>
 ```
 (currently destination project is hardcoded in the bash script; sorry)
+
+## How to build
+
+```
+mvn clean install
+```
+
+and then you can run the jar directly from the `target` folder as seen in the bash scripts
