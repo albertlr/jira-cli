@@ -200,7 +200,13 @@ public class Jira implements AutoCloseable {
                 .setPriority(source.getPriority());
 
         if (source.getReporter() != null) {
-            issueBuilder.setReporter(source.getReporter());
+            User reporter = source.getReporter();
+            if (reporter.isActive()) {
+                issueBuilder.setReporter(reporter);
+            } else {
+                log.trace("Set {} as reporter as {} is inactive", user, reporter.getName());
+                issueBuilder.setReporterName(user);
+            }
         }
         if (source.getAssignee() != null) {
             issueBuilder.setAssignee(source.getAssignee());
