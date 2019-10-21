@@ -25,6 +25,7 @@ import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
+import ro.albertlr.jira.action.AssignToMe;
 import ro.albertlr.jira.action.Clone;
 import ro.albertlr.jira.action.Get;
 import ro.albertlr.jira.action.GetE2EsRecursively;
@@ -47,6 +48,7 @@ public interface Action<R> {
         GET_E2ES("get-e2es", GetE2EsRecursively::new),
         CLONE("clone", Clone::new),
         MOVE("move", Move::new),
+        ASSIGN_TO_ME("assignToMe", AssignToMe::new),
 
         unknown("???", NoOp::new);
 

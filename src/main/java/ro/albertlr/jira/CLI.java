@@ -67,6 +67,12 @@ public class CLI {
                     }
                 }
                 break;
+                case ASSIGN_TO_ME: {
+                    action.execute(jira, jiraSourceKey);
+
+                    log.info("Successfully assigned {} to me", jiraSourceKey);
+                }
+                break;
                 case CLONE: {
                     String cloneKey = action.execute(jira, jiraSourceKey);
 

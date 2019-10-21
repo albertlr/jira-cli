@@ -35,6 +35,7 @@ import com.atlassian.jira.rest.client.api.domain.Subtask;
 import com.atlassian.jira.rest.client.api.domain.input.AttachmentInput;
 import com.atlassian.jira.rest.client.api.domain.input.CannotTransformValueException;
 import com.atlassian.jira.rest.client.api.domain.input.ComplexIssueInputFieldValue;
+import com.atlassian.jira.rest.client.api.domain.input.FieldInput;
 import com.atlassian.jira.rest.client.api.domain.input.IssueInput;
 import com.atlassian.jira.rest.client.api.domain.input.IssueInputBuilder;
 import com.atlassian.jira.rest.client.api.domain.input.LinkIssuesInput;
@@ -283,6 +284,23 @@ public class Jira implements AutoCloseable {
 //                );
 
         return result;
+    }
+
+    public void assignToMe(String key) {
+        assignTo(key, this.user);
+    }
+
+    public void assignTo(String key, String user) {
+        Issue issue = loadIssue(key);
+        IssueInput issueInput = IssueInput.createWithFields(
+                new FieldInput(
+                        IssueFieldId.ASSIGNEE_FIELD,
+                        ComplexIssueInputFieldValue.with("name", user)
+                )
+        );
+        issueClient()
+                .updateIssue(key, issueInput)
+                .claim();
     }
 
     public void link(String fromKey, String toKey, String linkType) {
