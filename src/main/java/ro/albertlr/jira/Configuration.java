@@ -34,6 +34,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Optional;
 import java.util.Properties;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -75,6 +76,16 @@ public class Configuration {
         private Action.Name action;
         @Singular("property")
         private Map<String, String> properties;
+
+        public String getProperty(String property) {
+            return getProperty(property, null);
+        }
+
+        public String getProperty(String property, String defaultValue) {
+            String value = properties.get(property);
+            return Optional.ofNullable(value)
+                    .orElse(defaultValue);
+        }
     }
 
     private Properties properties;

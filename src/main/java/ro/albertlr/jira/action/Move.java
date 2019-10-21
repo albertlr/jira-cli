@@ -28,7 +28,7 @@ import lombok.extern.slf4j.Slf4j;
 import ro.albertlr.jira.Action;
 import ro.albertlr.jira.IssueLogger;
 import ro.albertlr.jira.Jira;
-import ro.albertlr.jira.Jira.CloneConfig;
+import ro.albertlr.jira.clone.CloneConfig;
 
 import java.util.concurrent.ExecutionException;
 
@@ -67,7 +67,7 @@ public class Move implements Action<String> {
             Thread.currentThread().interrupt();
             Throwables.propagate(e);
         } catch (ExecutionException e) {
-            Throwables.propagate(e);
+            Throwables.propagate(e.getCause());
         }
 
         log.info("Start cloning {}", issueSourceKey);

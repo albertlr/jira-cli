@@ -22,17 +22,15 @@ package ro.albertlr.jira;
 import com.atlassian.jira.rest.client.api.IssueRestClient;
 import com.atlassian.jira.rest.client.api.JiraRestClient;
 import com.atlassian.jira.rest.client.api.JiraRestClientFactory;
-import com.atlassian.jira.rest.client.api.domain.Attachment;
 import com.atlassian.jira.rest.client.api.domain.BasicIssue;
 import com.atlassian.jira.rest.client.api.domain.BasicProject;
 import com.atlassian.jira.rest.client.api.domain.Issue;
 import com.atlassian.jira.rest.client.api.domain.IssueField;
-import com.atlassian.jira.rest.client.api.domain.IssueLink;
+import com.atlassian.jira.rest.client.api.domain.IssueFieldId;
 import com.atlassian.jira.rest.client.api.domain.Project;
 import com.atlassian.jira.rest.client.api.domain.Resolution;
 import com.atlassian.jira.rest.client.api.domain.Status;
-import com.atlassian.jira.rest.client.api.domain.Subtask;
-import com.atlassian.jira.rest.client.api.domain.input.AttachmentInput;
+import com.atlassian.jira.rest.client.api.domain.User;
 import com.atlassian.jira.rest.client.api.domain.input.CannotTransformValueException;
 import com.atlassian.jira.rest.client.api.domain.input.ComplexIssueInputFieldValue;
 import com.atlassian.jira.rest.client.api.domain.input.FieldInput;
@@ -45,12 +43,11 @@ import com.google.common.collect.Lists;
 import com.google.common.io.Files;
 import io.atlassian.util.concurrent.Promise;
 import io.atlassian.util.concurrent.Promise.TryConsumer;
-import lombok.Builder;
-import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
-import ro.albertlr.jira.Action.Name;
 import ro.albertlr.jira.Configuration.ActionConfig;
 import ro.albertlr.jira.Configuration.IssueTypeConfig;
+import ro.albertlr.jira.clone.AddLinks;
+import ro.albertlr.jira.clone.CloneConfig;
 
 import javax.annotation.Nonnull;
 import java.io.File;
@@ -64,12 +61,10 @@ import java.util.Collections;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Properties;
-import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.function.Supplier;
-import java.util.stream.StreamSupport;
 
 import static java.lang.String.format;
 import static java.nio.charset.StandardCharsets.UTF_8;
@@ -161,7 +156,7 @@ public class Jira implements AutoCloseable {
         }
     }
 
-    private IssueRestClient issueClient() {
+    public IssueRestClient issueClient() {
         return restClient()
                 .getIssueClient();
     }
@@ -259,7 +254,7 @@ public class Jira implements AutoCloseable {
 
         Promise<BasicIssue> result = issueClient()
                 .createIssue(issueInput)
-                .then(config.isCloningLinks() ? new AddLinks(source) : noOpConsumer());
+                .then(config.isCloningLinks() ? new AddLinks(this, source, configuration) : noOpConsumer());
 
 //        try {
 //            BasicIssue resultingIssue = null;
@@ -356,16 +351,17 @@ public class Jira implements AutoCloseable {
         };
     }
 
-    private void link(LinkIssuesInput linkInput) {
-        Promise<Void> response = issueClient()
-                .linkIssue(linkInput);
+    public void link(LinkIssuesInput linkInput) {
         try {
-            Promise<Void> linkedPromise = response.then(
-                    loggingConsumer(
-                            () -> format("Link %s to %s as %s was successful", linkInput.getFromIssueKey(), linkInput.getToIssueKey(), linkInput.getLinkType()),
-                            () -> format("Error occurred while linking %s to %s as %s", linkInput.getFromIssueKey(), linkInput.getToIssueKey(), linkInput.getLinkType())
-                    )
-            );
+            Promise<Void> response = issueClient()
+                    .linkIssue(linkInput);
+            Promise<Void> linkedPromise = response
+                    .then(
+                            loggingConsumer(
+                                    () -> format("Link %s to %s as %s was successful", linkInput.getFromIssueKey(), linkInput.getToIssueKey(), linkInput.getLinkType()),
+                                    () -> format("Error occurred while linking %s to %s as %s", linkInput.getFromIssueKey(), linkInput.getToIssueKey(), linkInput.getLinkType())
+                            )
+                    );
 
             ActionConfig actionConfig = configuration.actionConfigFor(Action.Name.LINK);
             Void linked;
@@ -402,133 +398,6 @@ public class Jira implements AutoCloseable {
         }
     }
 
-    @Builder
-    @Getter
-    public static class CloneConfig {
-        @Builder.Default
-        private boolean cloningAttachments = false;
-        @Builder.Default
-        private boolean cloningAffectedVersions = true;
-        @Builder.Default
-        private boolean cloningFixVersions = false;
-        @Builder.Default
-        private boolean cloningComponents = true;
-        @Builder.Default
-        private boolean cloningLinks = false;
-        @Builder.Default
-        private boolean cloningSubtasks = true;
-        @Builder.Default
-        private boolean cloningLabels = true;
-    }
-
-    private class CloneSubtasks implements TryConsumer<BasicIssue> {
-        private final Issue source;
-
-        public CloneSubtasks(Issue source) {
-            this.source = source;
-        }
-
-        @Override
-        public void fail(@Nonnull Throwable t) {
-            log.error("Cannot clone subtasks from {}", source.getKey(), t);
-        }
-
-        @Override
-        public void accept(BasicIssue basicIssue) {
-            if (basicIssue instanceof Issue) {
-                for (Subtask subtask : safe(source.getSubtasks())) {
-                    log.info("SKIPPING subtasks {}", subtask);
-                }
-            }
-        }
-
-        AttachmentInput[] toAttachmentInputs(Iterable<Attachment> attachments) {
-            return StreamSupport.stream(attachments.spliterator(), false)
-                    .map(this::toAttachmentInput)
-                    .toArray(AttachmentInput[]::new);
-        }
-
-
-        AttachmentInput toAttachmentInput(Attachment attachment) {
-            try {
-                return new AttachmentInput(attachment.getFilename(), attachment.getContentUri().toURL().openStream());
-            } catch (IOException e) {
-                log.warn("Could not convert attachment {}", attachment.getFilename(), e);
-                return null;
-            }
-        }
-
-    }
-
-
-    private class AddAttachments implements TryConsumer<BasicIssue> {
-        private final Issue source;
-
-        public AddAttachments(Issue source) {
-            this.source = source;
-        }
-
-        @Override
-        public void fail(@Nonnull Throwable t) {
-            log.error("Cannot add attachments from {}", source.getKey(), t);
-        }
-
-        @Override
-        public void accept(BasicIssue basicIssue) {
-            if (basicIssue instanceof Issue) {
-                log.info("Adding attachments");
-//                restClient().getIssueClient().updateIssue(basicIssue.getKey(), in)
-                issueClient()
-                        .addAttachments(
-                                ((Issue) basicIssue).getAttachmentsUri(),
-                                toAttachmentInputs(source.getAttachments())
-                        );
-            }
-        }
-
-        AttachmentInput[] toAttachmentInputs(Iterable<Attachment> attachments) {
-            return StreamSupport.stream(attachments.spliterator(), false)
-                    .map(this::toAttachmentInput)
-                    .toArray(AttachmentInput[]::new);
-        }
-
-        AttachmentInput toAttachmentInput(Attachment attachment) {
-            try {
-                return new AttachmentInput(attachment.getFilename(), attachment.getContentUri().toURL().openStream());
-            } catch (IOException e) {
-                log.warn("Could not convert attachment {}", attachment.getFilename(), e);
-                return null;
-            }
-        }
-
-    }
-
-    private class AddLinks implements TryConsumer<BasicIssue> {
-        private final Issue source;
-
-        public AddLinks(Issue source) {
-            this.source = source;
-        }
-
-        @Override
-        public void fail(@Nonnull Throwable t) {
-            log.error("Cannot add link from {}", source.getKey(), t);
-        }
-
-        @Override
-        public void accept(BasicIssue basicIssue) {
-            // now mark it as clone
-            LinkIssuesInput cloneLink = new LinkIssuesInput(basicIssue.getKey(), source.getKey(), "Cloners");
-            log.info("Link {} to {} as {}", cloneLink.getFromIssueKey(), cloneLink.getToIssueKey(), cloneLink.getLinkType());
-            link(cloneLink);
-
-            for (IssueLink link : safe(source.getIssueLinks())) {
-                LinkIssuesInput linkInput = new LinkIssuesInput(basicIssue.getKey(), link.getTargetIssueKey(), link.getIssueLinkType().getName());
-                log.info("Link {} to {} as {}", linkInput.getFromIssueKey(), linkInput.getToIssueKey(), linkInput.getLinkType());
-                link(linkInput);
-            }
-        }
-    }
 
     public static <T> Iterable<T> safe(Iterable<T> iterable) {
         return Optional.ofNullable(iterable).orElse(Collections.emptyList());
