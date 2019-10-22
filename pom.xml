@@ -14,7 +14,7 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 
         <eclipse.collections.version>10.0.0</eclipse.collections.version>
-        <guava.version>18.0</guava.version> <!-- use same version as in JIRA REST Java Client -->
+        <guava.version>20.0</guava.version> <!-- use same version as in JIRA REST Java Client -->
         <lombok.version>1.18.10</lombok.version>
         <commons.cli.version>1.4</commons.cli.version>
 

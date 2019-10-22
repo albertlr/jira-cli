@@ -22,28 +22,102 @@ package ro.albertlr.jira;
 import com.atlassian.jira.rest.client.api.domain.BasicIssue;
 import com.atlassian.jira.rest.client.api.domain.Issue;
 import com.atlassian.jira.rest.client.api.domain.IssueLink;
+import com.atlassian.jira.rest.client.api.domain.Status;
+import com.google.common.base.Splitter;
 import lombok.experimental.UtilityClass;
 import org.slf4j.Logger;
+import ro.albertlr.jira.Action.Name;
+import ro.albertlr.jira.Configuration.ActionConfig;
+
+import java.util.Optional;
 
 @UtilityClass
 public class IssueLogger {
 
-    public static void logIssue(Logger log, Issue issue) {
-        logIssue(log, issue, true);
-    }
+    private static final String BASIC_LOG_STRATEGY = "action.get.basic.properties";
+    private static final String SHORT_LOG_STRATEGY = "action.get.short.properties";
+    private static final String SHORT_WITH_LINKS_LOG_STRATEGY = "action.get.short-links.properties";
+    private static final String FULL_LOG_STRATEGY = "action.get.full.properties";
 
-    public static void logIssue(Logger log, Issue issue, boolean logLinks) {
-        log.info("Issue '{}' {} - {}", issue.getIssueType().getName(), issue.getKey(), issue.getSummary());
-        if (logLinks) {
-            for (IssueLink link : issue.getIssueLinks()) {
-                log.info("      {} -> {} '{}':{}", issue.getKey(), link.getTargetIssueKey(),
-                        link.getIssueLinkType().getName(), link.getIssueLinkType().getDirection());
+    private static volatile Configuration configuration;
+
+    private Configuration getConfiguration() {
+        if (configuration == null) {
+            synchronized (IssueLogger.class) {
+                if (configuration == null) {
+                    IssueLogger.configuration = Configuration.loadConfiguration();
+                }
             }
         }
+        return IssueLogger.configuration;
     }
 
-    public static void logIssue(Logger log, BasicIssue issue) {
-        log.info("Issue {} - {}", issue.getKey(), issue.getSelf());
+    public static void fullLog(Logger log, Issue issue) {
+        log.info("Issue {}", issueInfo(issue, FULL_LOG_STRATEGY));
+    }
+
+    public static void simpleLog(Logger log, Issue issue) {
+        log.info("Issue {}", issueInfo(issue, SHORT_LOG_STRATEGY));
+    }
+
+    public static void shortLog(Logger log, Issue issue) {
+        log.info("Issue {}", issueInfo(issue, SHORT_WITH_LINKS_LOG_STRATEGY));
+    }
+
+    public static void basicLog(Logger log, BasicIssue issue) {
+        log.info("Issue {}", issueInfo(issue, BASIC_LOG_STRATEGY));
+    }
+
+    private static <I extends BasicIssue> StringBuilder issueInfo(I issue, String infoStrategy) {
+        StringBuilder buffer = new StringBuilder(512);
+        ActionConfig config = getConfiguration().getActionConfigs().get(Name.GET);
+
+        Iterable<String> properties = Splitter.on(',')
+                .trimResults()
+                .omitEmptyStrings()
+                .split(config.getProperty(infoStrategy, ""));
+
+        for (String property : properties) {
+            switch (property) {
+                case "key":
+                    buffer.append(issue.getKey())
+                            .append(" -");
+                    break;
+                case "self":
+                    buffer.append(issue.getSelf());
+                    break;
+
+                case "type":
+                    buffer.append('\'').append(((Issue) issue).getIssueType().getName()).append('\'');
+
+                case "summary":
+                    buffer.append(((Issue) issue).getSummary());
+                    break;
+                case "status": {
+                    buffer.append('[')
+                            .append(
+                                    Optional.ofNullable(((Issue) issue).getStatus())
+                                            .map(Status::getName)
+                                            .orElse("<undefined>")
+                            )
+                            .append(']');
+                }
+                case "links": {
+                    for (IssueLink link : ((Issue) issue).getIssueLinks()) {
+                        buffer.append(System.lineSeparator());
+                        buffer.append("    ").append(issue.getKey())
+                                .append(" -> ").append(link.getTargetIssueKey())
+                                .append(" '").append(link.getIssueLinkType().getName())
+                                .append("':").append(link.getIssueLinkType().getDirection());
+                    }
+                }
+                break;
+            }
+
+            buffer.append(' ');
+        }
+
+        return buffer;
     }
 
 }

@@ -29,6 +29,7 @@ import lombok.Singular;
 import lombok.ToString;
 import lombok.extern.slf4j.Slf4j;
 
+import java.io.IOException;
 import java.util.Collections;
 import java.util.EnumMap;
 import java.util.HashMap;
@@ -52,6 +53,18 @@ public class Configuration {
     public static final String CONF_REQUIRED_FIELDS = "%s.requiredFields";
     public static final String CONF_REQUIRED_FIELD_OPTIONS = "%s.requiredField.%s.options";
     public static final String CONF_REQUIRED_FIELD_OPTIONS_DEFAULT = "%s.requiredField.%s.optionsDefault";
+
+    public static Configuration loadConfiguration() {
+        Properties properties = new Properties();
+        try {
+            properties.load(Jira.class.getResourceAsStream("/config.properties"));
+        } catch (IOException e) {
+            log.error("Could not load configuration from config.properties", e);
+        }
+        return Configuration.builder()
+                .properties(properties)
+                .build();
+    }
 
     @Builder
     @Getter

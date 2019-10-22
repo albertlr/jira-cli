@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-set -ex
+#set -ex
 
 # in base64 we have the following "jiraUser:jiraPassword"
 if [ -f "${HOME}/.jira_auth" ]; then

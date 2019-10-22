@@ -27,6 +27,7 @@ import org.apache.commons.cli.CommandLine;
 import java.util.Arrays;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 @Slf4j
 public class CLI {
@@ -54,7 +55,7 @@ public class CLI {
                 case GET: {
                     Issue issue = action.execute(jira, jiraSourceKey);
 
-                    IssueLogger.logIssue(log, issue);
+                    IssueLogger.fullLog(log, issue);
                 }
                 break;
                 case LINK: {
@@ -67,11 +68,16 @@ public class CLI {
                 case GET_E2ES: {
                     boolean recursive = cli.hasOption("recursive");
 
-                    Map<String, Set<String>> e2ea = action.execute(jira, jiraSourceKey, String.valueOf(recursive));
+                    Map<String, Set<Issue>> e2ea = action.execute(jira, jiraSourceKey, String.valueOf(recursive));
 
                     log.info("E2Es for {}", jiraSourceKey);
-                    for (Map.Entry<String, Set<String>> listOfDependencies : e2ea.entrySet()) {
-                        log.info("    {} -> {}", listOfDependencies.getKey(), listOfDependencies.getValue());
+                    for (Map.Entry<String, Set<Issue>> listOfDependencies : e2ea.entrySet()) {
+                        log.info("    {} -> [{}]",
+                                listOfDependencies.getKey(),
+                                listOfDependencies.getValue().stream()
+                                        .map(issue -> issue.getKey() + "(" + issue.getStatus().getName() + ")")
+                                        .collect(Collectors.joining(","))
+                        );
                     }
                 }
                 break;

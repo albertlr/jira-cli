@@ -51,7 +51,7 @@ public class Move implements Action<String> {
         Issue issue = jira.loadIssue(issueSourceKey);
 
         log.info("Start cloning & moving {}", issueSourceKey);
-        IssueLogger.logIssue(log, issue);
+        IssueLogger.shortLog(log, issue);
 
         CloneConfig config = CloneConfig.builder()
                 .cloningAttachments(false)
@@ -71,7 +71,7 @@ public class Move implements Action<String> {
         }
 
         log.info("Start cloning {}", issueSourceKey);
-        IssueLogger.logIssue(log, clone);
+        IssueLogger.basicLog(log, clone);
 
         return clone.getKey();
     }

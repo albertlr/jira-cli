@@ -100,15 +100,7 @@ public class Jira implements AutoCloseable {
         this.user = user;
         this.password = password;
 
-        Properties properties = new Properties();
-        try {
-            properties.load(Jira.class.getResourceAsStream("/config.properties"));
-        } catch (IOException e) {
-            log.error("Could not load configuration from config.properties", e);
-        }
-        this.configuration = Configuration.builder()
-                .properties(properties)
-                .build();
+        this.configuration = Configuration.loadConfiguration();
     }
 
     private static String loadAuth() {
@@ -174,7 +166,7 @@ public class Jira implements AutoCloseable {
 
             Issue issue = issuePromise.get();
 
-            IssueLogger.logIssue(log, issue, false);
+            IssueLogger.simpleLog(log, issue);
 
             return issue;
         } catch (InterruptedException e) {

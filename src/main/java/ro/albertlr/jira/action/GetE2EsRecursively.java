@@ -7,9 +7,9 @@
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *      http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -35,26 +35,27 @@ import java.util.Map;
 import java.util.Queue;
 import java.util.Set;
 import java.util.TreeSet;
+import java.util.stream.Collectors;
 
 import static ro.albertlr.jira.Action.paramAt;
 import static ro.albertlr.jira.CLI.DEPENDS_ON_LINK;
 import static ro.albertlr.jira.CLI.ISSUE_E2E;
 import static ro.albertlr.jira.CLI.TESTED_BY_LINK;
 
-public class GetE2EsRecursively implements Action<Map<String, Set<String>>> {
+public class GetE2EsRecursively implements Action<Map<String, Set<Issue>>> {
     @Override
-    public Map<String, Set<String>> execute(Jira jira, String... params) {
+    public Map<String, Set<Issue>> execute(Jira jira, String... params) {
         String jiraSourceKey = paramAt(params, 0, "sourceKey");
         boolean recursive = Boolean.valueOf(paramAt(params, 1, "recursive"));
 
-        Map<String, Set<String>> e2es = doGetIssueE2Es(jira, jiraSourceKey);
+        Map<String, Set<Issue>> e2es = doGetIssueE2Es(jira, jiraSourceKey);
         if (recursive) {
             Set<String> keysProcessed = new HashSet<>();
             keysProcessed.addAll(e2es.keySet());
-            Queue<Set<String>> issues = Lists.newLinkedList(e2es.values());
+            Queue<Set<Issue>> issues = Lists.newLinkedList(e2es.values());
             while (!issues.isEmpty()) {
-                Set<String> nextIterationIssueKeys = issues.poll();
-                doGetIssueE2Es(jira, nextIterationIssueKeys, e2es);
+                Set<Issue> nextIterationIssueKeys = issues.poll();
+                doGetIssueE2Es(jira, nextIterationIssueKeys.stream().map(Issue::getKey).collect(Collectors.toSet()), e2es);
 
                 for (String potentiallyUnprocessedKey : e2es.keySet()) {
                     if (!keysProcessed.contains(potentiallyUnprocessedKey)) {
@@ -62,24 +63,24 @@ public class GetE2EsRecursively implements Action<Map<String, Set<String>>> {
                     }
                 }
 
-                keysProcessed.addAll(nextIterationIssueKeys);
+                keysProcessed.addAll(nextIterationIssueKeys.stream().map(Issue::getKey).collect(Collectors.toSet()));
             }
         }
 
         return e2es;
     }
 
-    private static Map<String, Set<String>> doGetIssueE2Es(Jira jira, String issueKeys) {
+    private static Map<String, Set<Issue>> doGetIssueE2Es(Jira jira, String issueKeys) {
         Iterable<String> issues = Splitter.on(',').trimResults().omitEmptyStrings().split(issueKeys);
         return doGetIssueE2Es(jira, issues);
     }
 
-    private static Map<String, Set<String>> doGetIssueE2Es(Jira jira, Iterable<String> issueKeys) {
-        Map<String, Set<String>> e2es = new LinkedHashMap<>();
+    private static Map<String, Set<Issue>> doGetIssueE2Es(Jira jira, Iterable<String> issueKeys) {
+        Map<String, Set<Issue>> e2es = new LinkedHashMap<>();
         return doGetIssueE2Es(jira, issueKeys, e2es);
     }
 
-    private static Map<String, Set<String>> doGetIssueE2Es(Jira jira, Iterable<String> issueKeys, Map<String, Set<String>> e2es) {
+    private static Map<String, Set<Issue>> doGetIssueE2Es(Jira jira, Iterable<String> issueKeys, Map<String, Set<Issue>> e2es) {
         for (String issueKey : issueKeys) {
             if (e2es.containsKey(issueKey)) {
                 continue;
@@ -87,7 +88,17 @@ public class GetE2EsRecursively implements Action<Map<String, Set<String>>> {
 
             Issue issue = jira.loadIssue(issueKey);
 
-            Set<String> e2esOf = new TreeSet<>();
+            Set<Issue> e2esOf = new TreeSet<>((o1, o2) -> {
+                if (o1 != null && o2 != null) {
+                    return o1.getKey().compareTo(o2.getKey());
+                }
+
+                if (o1 == null && o2 == null) {
+                    return 0;
+                }
+
+                return o1 == null ? -1 : 1;
+            });
             e2es.put(issueKey, e2esOf);
 
             // if is an E2E then found the "Depends On" links
@@ -98,7 +109,7 @@ public class GetE2EsRecursively implements Action<Map<String, Set<String>>> {
                         Issue e2eIssue = jira.loadIssue(e2eIssueKey);
                         // we are interested only in E2E dependencies
                         if (isE2e(e2eIssue.getIssueType())) {
-                            e2esOf.add(e2eIssueKey);
+                            e2esOf.add(e2eIssue);
                         }
                     }
                 }
@@ -112,7 +123,7 @@ public class GetE2EsRecursively implements Action<Map<String, Set<String>>> {
                             Issue e2eIssue = jira.loadIssue(e2eIssueKey);
                             // we are interested only in E2E dependencies
                             if (isE2e(e2eIssue.getIssueType())) {
-                                e2esOf.add(e2eIssueKey);
+                                e2esOf.add(e2eIssue);
                             }
                         }
                     }

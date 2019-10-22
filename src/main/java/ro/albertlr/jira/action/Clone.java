@@ -57,7 +57,7 @@ public class Clone implements Action<String> {
         Issue issue = jira.loadIssue(issueSourceKey);
 
         log.info("Start cloning {}", issueSourceKey);
-        IssueLogger.logIssue(log, issue);
+        IssueLogger.shortLog(log, issue);
 
         CloneConfig config = CloneConfig.builder()
                 .cloningAttachments(false)
@@ -77,7 +77,7 @@ public class Clone implements Action<String> {
         }
 
         log.info("Issue {} cloned to {}", issueSourceKey, clone.getKey());
-        IssueLogger.logIssue(log, clone);
+        IssueLogger.basicLog(log, clone);
 
         return clone.getKey();
     }
