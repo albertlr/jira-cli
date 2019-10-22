@@ -29,6 +29,7 @@ import lombok.Singular;
 import lombok.ToString;
 import lombok.extern.slf4j.Slf4j;
 
+import java.util.Collections;
 import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.List;
@@ -200,6 +201,9 @@ public class Configuration {
     }
 
     static Set<String> toSet(String commaSeparatedText) {
+        if (commaSeparatedText == null) {
+            return Collections.emptySet();
+        }
         return ImmutableSet.copyOf(
                 Splitter.on(',')
                         .omitEmptyStrings()

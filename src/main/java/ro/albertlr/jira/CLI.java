@@ -24,6 +24,7 @@ import com.atlassian.jira.rest.client.api.domain.Transition;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.cli.CommandLine;
 
+import java.util.Arrays;
 import java.util.Map;
 import java.util.Set;
 
@@ -34,14 +35,21 @@ public class CLI {
     public static final String DEPENDS_ON_LINK = "Depends On";
     public static final String TESTED_BY_LINK = "Tests Writing";
 
+    public static void execute(String... args) {
+        try {
+            main(args);
+        } catch (Exception e) {
+            log.error("Could not execute main({})", Arrays.toString(args));
+        }
+    }
+
     public static void main(String[] args) throws Exception {
         CommandLine cli = Params.cli(args);
 
         String jiraSourceKey = Params.getParameter(cli, Params.SOURCE_ARG);
-
         final Action.Name action = Action.Name.from(Params.getParameter(cli, Params.ACTION_ARG));
 
-        try (final Jira jira = new Jira()) {
+        try (final Jira jira = Jira.getInstance();) {
             switch (action) {
                 case GET: {
                     Issue issue = action.execute(jira, jiraSourceKey);

@@ -58,6 +58,7 @@ import java.net.URISyntaxException;
 import java.util.Base64;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Properties;
@@ -72,6 +73,16 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 @Slf4j
 public class Jira implements AutoCloseable {
 
+    public static Jira getInstance() {
+        try {
+            final String username = loadUser();
+            char[] password = loadPassword();
+            return new Jira("https://jira.devfactory.com/", username, password);
+        } catch (URISyntaxException e) {
+            throw Throwables.propagate(e);
+        }
+    }
+
     private final String user;
     private final char[] password;
 
@@ -83,11 +94,7 @@ public class Jira implements AutoCloseable {
 
     private Configuration configuration;
 
-    public Jira() throws URISyntaxException {
-        this("https://jira.devfactory.com/", loadUser(), loadPassword());
-    }
-
-    public Jira(String jiraServerUrl, String user, char[] password) throws URISyntaxException {
+    private Jira(String jiraServerUrl, String user, char[] password) throws URISyntaxException {
         factory = new AsynchronousJiraRestClientFactory();
         jiraServerUri = new URI(jiraServerUrl);
         this.user = user;
@@ -146,7 +153,7 @@ public class Jira implements AutoCloseable {
                     .getProjectClient()
                     .getProject(projectKey);
             Project project = projectPromise.get();
-            log.info("Loading project {}: {}", projectKey, project);
+            log.info("Loading project {}: {}", projectKey, project.getDescription());
             return project;
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();

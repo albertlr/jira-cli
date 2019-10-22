@@ -26,11 +26,12 @@ import com.atlassian.jira.rest.client.api.domain.IssueLinkType.Direction;
 import com.atlassian.jira.rest.client.api.domain.input.LinkIssuesInput;
 import com.google.common.io.Files;
 import io.atlassian.util.concurrent.Promise.TryConsumer;
-import lombok.AllArgsConstructor;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.collections.api.tuple.Pair;
 import org.eclipse.collections.impl.tuple.Tuples;
 import ro.albertlr.jira.Action.Name;
+import ro.albertlr.jira.CLI;
 import ro.albertlr.jira.Configuration;
 import ro.albertlr.jira.Configuration.ActionConfig;
 import ro.albertlr.jira.Jira;
@@ -39,10 +40,12 @@ import javax.annotation.Nonnull;
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Map;
 
 @Slf4j
-@AllArgsConstructor
+@RequiredArgsConstructor
 public class AddLinks implements TryConsumer<BasicIssue> {
     private final Jira jira;
     private final Issue source;
@@ -57,23 +60,47 @@ public class AddLinks implements TryConsumer<BasicIssue> {
     public void accept(BasicIssue basicIssue) {
         final String issueKey = basicIssue.getKey();
         // now mark it as clone
+
+        Strategy strategy = selectStartegy(issueKey);
+
         LinkIssuesInput cloneLink = new LinkIssuesInput(issueKey, source.getKey(), "Cloners");
         log.info("Link {} to {} as {}", cloneLink.getFromIssueKey(), cloneLink.getToIssueKey(), cloneLink.getLinkType());
-        doLink(cloneLink, issueKey);
+        strategy.collect(cloneLink);
 
         for (IssueLink link : Jira.safe(source.getIssueLinks())) {
             Pair<String, String> linkPair = buildLinkPair(issueKey, link);
 
             LinkIssuesInput linkInput = new LinkIssuesInput(linkPair.getOne(), linkPair.getTwo(), link.getIssueLinkType().getName());
             log.info("Link {} to {} as {}", linkInput.getFromIssueKey(), linkInput.getToIssueKey(), linkInput.getLinkType());
-            doLink(linkInput, issueKey);
+            strategy.collect(linkInput);
         }
+
+        strategy.execute();
+    }
+
+    private Strategy selectStartegy(String issueKey) {
+        Strategy strategy;
+        ActionConfig config = configuration.getActionConfigs().get(Name.CLONE);
+        String script = null;
+        if ("generateScript".equals(config.getProperty("action.clone.links.strategy"))) {
+            script =
+                    String.format(
+                            config.getProperty("action.clone.links.strategy.generateScript.script", "links-for-%s.sh"),
+                            issueKey
+                    );
+            strategy = new GenerateScriptStrategy(script);
+        } else if ("invokeInSameProcess".equals(config.getProperty("action.clone.links.strategy"))) {
+            strategy = new InvokeInSameJvmStrategy();
+        } else {
+            strategy = new LinkIssueOnCollectStrategy(jira);
+        }
+        return strategy;
     }
 
     private Pair<String, String> buildLinkPair(String issueKey, IssueLink link) {
         String from;
         String to;
-        if (Direction.INBOUND.equals(link.getIssueLinkType().getDirection())) {
+        if (Direction.OUTBOUND.equals(link.getIssueLinkType().getDirection())) {
             from = issueKey;
             to = link.getTargetIssueKey();
         } else {
@@ -83,33 +110,76 @@ public class AddLinks implements TryConsumer<BasicIssue> {
         return Tuples.pair(from, to);
     }
 
-    private void doLink(LinkIssuesInput link, String issueKey) {
-        ActionConfig config = configuration.getActionConfigs().get(Name.CLONE);
-        if ("generateScript".equals(config.getProperty("action.clone.links.action"))) {
-            String script =
-                    String.format(
-                            config.getProperty("action.clone.links.action.generateScript.script", "links-for-%s.sh"),
-                            issueKey
-                    );
 
-            StringBuilder command = new StringBuilder(128);
+    @RequiredArgsConstructor
+    private class InvokeInSameJvmStrategy implements Strategy {
+        private final Collection<LinkIssuesInput> linksToExecute = new ArrayList<>();
+
+        public void collect(LinkIssuesInput link) {
+            linksToExecute.add(link);
+        }
+
+        @Override
+        public void execute() {
+            for (LinkIssuesInput link : linksToExecute) {
+                CLI.execute(
+                        "--action", "link",
+                        "--source", link.getFromIssueKey(),
+                        "--target", link.getToIssueKey(),
+                        "--link-type", unnormalizeLinkType(link.getLinkType()));
+            }
+        }
+    }
+
+    @RequiredArgsConstructor
+    private class LinkIssueOnCollectStrategy implements Strategy {
+        private final Jira jira;
+
+        public void collect(LinkIssuesInput link) {
+            jira.link(link);
+        }
+
+        @Override
+        public void execute() {
+            // do nothing
+        }
+    }
+
+    @RequiredArgsConstructor
+    private class GenerateScriptStrategy implements Strategy {
+        private final StringBuilder commandBuilder = new StringBuilder(512);
+        private final String script;
+
+        public void collect(LinkIssuesInput link) {
+            StringBuilder command = new StringBuilder(32);
             command.append("./jira-link.sh ")
                     .append(link.getFromIssueKey())
                     .append(" ")
                     .append(link.getToIssueKey())
                     .append(" \"")
                     .append(unnormalizeLinkType(link.getLinkType()))
-                    .append("\"");
+                    .append("\"")
+                    .append(System.lineSeparator());
 
-            try {
-                log.info("$ {}", command);
-                Files.write(command, new File(script), StandardCharsets.UTF_8);
-            } catch (IOException e) {
-                log.error("Could not write command [{}] to script {}", command, script);
-            }
-        } else {
-            jira.link(link);
+            log.info("$ {}", command);
+
+            commandBuilder.append(command);
         }
+
+        @Override
+        public void execute() {
+            try {
+                Files.write(commandBuilder, new File(script), StandardCharsets.UTF_8);
+            } catch (IOException e) {
+                log.error("Could not write script {}", script, e);
+            }
+        }
+    }
+
+    interface Strategy {
+        void collect(LinkIssuesInput linkIssuesInput);
+
+        void execute();
     }
 
     private String unnormalizeLinkType(String linkType) {
