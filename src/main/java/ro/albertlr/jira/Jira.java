@@ -31,6 +31,7 @@ import com.atlassian.jira.rest.client.api.domain.Project;
 import com.atlassian.jira.rest.client.api.domain.Resolution;
 import com.atlassian.jira.rest.client.api.domain.Status;
 import com.atlassian.jira.rest.client.api.domain.User;
+import com.atlassian.jira.rest.client.api.domain.Version;
 import com.atlassian.jira.rest.client.api.domain.input.CannotTransformValueException;
 import com.atlassian.jira.rest.client.api.domain.input.ComplexIssueInputFieldValue;
 import com.atlassian.jira.rest.client.api.domain.input.FieldInput;
@@ -39,6 +40,7 @@ import com.atlassian.jira.rest.client.api.domain.input.IssueInputBuilder;
 import com.atlassian.jira.rest.client.api.domain.input.LinkIssuesInput;
 import com.atlassian.jira.rest.client.internal.async.AsynchronousJiraRestClientFactory;
 import com.google.common.base.Throwables;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.io.Files;
 import io.atlassian.util.concurrent.Promise;
@@ -208,11 +210,20 @@ public class Jira implements AutoCloseable {
             }
         }
         if (source.getAssignee() != null) {
-            issueBuilder.setAssignee(source.getAssignee());
+            User assignee = source.getAssignee();
+            if (assignee.isActive()) {
+                issueBuilder.setAssignee(assignee);
+            } else {
+                log.trace("Set {} as assignee as {} is inactive", user, assignee.getName());
+                issueBuilder.setAssigneeName(user);
+            }
         }
 
         if (config.isCloningAffectedVersions()) {
-            issueBuilder.setAffectedVersions(source.getAffectedVersions());
+            Iterable<Version> versions = source.getAffectedVersions();
+            if (!Iterables.isEmpty(versions)) {
+                issueBuilder.setAffectedVersions(Iterables.limit(versions, 1));
+            }
         }
         if (config.isCloningFixVersions()) {
             issueBuilder.setFixVersions(source.getFixVersions());
@@ -239,14 +250,8 @@ public class Jira implements AutoCloseable {
                     && !typeConfig.getRequiredFields().contains(id)) {
                 try {
                     String asString = String.valueOf(value);
-//                    if (requiredFields.contains(id)) {
-//                        Map<String, Object> asMap = requiredFieldOptionsDefault.get(id);
-//                        log.debug("Setting field {}: {}", id, asMap);
-//                        issueBuilder.setFieldValue(id, new ComplexIssueInputFieldValue(asMap));
-//                    } else {
                     log.debug("Setting field {}", field);
                     issueBuilder.setFieldValue(id, asString);
-//                    }
                 } catch (CannotTransformValueException exception) {
                     log.warn("Could not set field {}", field, exception);
                 }
@@ -254,8 +259,6 @@ public class Jira implements AutoCloseable {
         }
 
         IssueInput issueInput = issueBuilder.build();
-
-//        log.info("issueInput {}", issueInput);
 
         Promise<BasicIssue> result = issueClient()
                 .createIssue(issueInput)
