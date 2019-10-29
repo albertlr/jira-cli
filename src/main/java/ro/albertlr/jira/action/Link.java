@@ -19,13 +19,13 @@
  */
 package ro.albertlr.jira.action;
 
-import com.google.common.base.Splitter;
 import com.google.common.base.Stopwatch;
 import lombok.extern.slf4j.Slf4j;
 import ro.albertlr.jira.Action;
 import ro.albertlr.jira.Jira;
 
 import static ro.albertlr.jira.Action.paramAt;
+import static ro.albertlr.jira.Utils.split;
 
 @Slf4j
 public class Link implements Action<Void> {
@@ -37,14 +37,8 @@ public class Link implements Action<Void> {
 
         Stopwatch stopwatch = Stopwatch.createStarted();
 
-        Iterable<String> sourceKeys = Splitter.on(',')
-                .omitEmptyStrings()
-                .trimResults()
-                .split(jiraSourceKey);
-        Iterable<String> targetKeys = Splitter.on(',')
-                .omitEmptyStrings()
-                .trimResults()
-                .split(jiraTargetKey);
+        Iterable<String> sourceKeys = split(jiraSourceKey);
+        Iterable<String> targetKeys = split(jiraTargetKey);
 
         for (String source : sourceKeys) {
             for (String target : targetKeys) {

@@ -19,7 +19,6 @@
  */
 package ro.albertlr.jira;
 
-import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Maps;
@@ -33,13 +32,13 @@ import java.io.IOException;
 import java.util.Collections;
 import java.util.EnumMap;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Properties;
 import java.util.Set;
-import java.util.stream.Collectors;
+
+import static ro.albertlr.jira.Utils.split;
+import static ro.albertlr.jira.Utils.splitToMap;
 
 @Getter
 @Slf4j
@@ -138,19 +137,16 @@ public class Configuration {
             Set<String> requiredFields = toSet(config.getProperty(keyOf(CONF_REQUIRED_FIELDS, issueTypeId)));
             configBuilder.requiredFields(requiredFields);
             for (String requiredField : requiredFields) {
-                Set<Entry<String, String>> options = toEntrySet(config.getProperty(keyOf(CONF_REQUIRED_FIELD_OPTIONS, issueTypeId, requiredField)));
+                Map<String, String> options = toMap(config.getProperty(keyOf(CONF_REQUIRED_FIELD_OPTIONS, issueTypeId, requiredField)));
                 configBuilder.requiredFieldOption(
                         requiredField,
-                        options.stream()
-                                .collect(Collectors.toMap(Entry::getKey, Entry::getValue))
+                        ImmutableMap.copyOf(options)
                 );
 
-                Set<Entry<String, String>> optionsDefault = toEntrySet(config.getProperty(keyOf(CONF_REQUIRED_FIELD_OPTIONS_DEFAULT, issueTypeId, requiredField)));
+                Map<String, String> optionsDefault = toMap(config.getProperty(keyOf(CONF_REQUIRED_FIELD_OPTIONS_DEFAULT, issueTypeId, requiredField)));
                 configBuilder.requiredFieldOptionDefault(
                         requiredField,
-                        optionsDefault.stream()
-                                .map(e -> Maps.<String, Object>immutableEntry(e.getKey(), e.getValue()))
-                                .collect(Collectors.toMap(Entry::getKey, Entry::getValue))
+                        ImmutableMap.copyOf(optionsDefault)
                 );
             }
 
@@ -217,33 +213,11 @@ public class Configuration {
         if (commaSeparatedText == null) {
             return Collections.emptySet();
         }
-        return ImmutableSet.copyOf(
-                Splitter.on(',')
-                        .omitEmptyStrings()
-                        .trimResults()
-                        .split(commaSeparatedText)
-        );
+        return ImmutableSet.copyOf(split(commaSeparatedText));
     }
 
-    static Set<Map.Entry<String, String>> toEntrySet(String commaSeparatedText) {
-        return ImmutableSet.copyOf(
-                Splitter.on(',')
-                        .omitEmptyStrings()
-                        .trimResults()
-                        .splitToList(commaSeparatedText)
-                        .stream()
-                        .map(Configuration::toEntry)
-                        .collect(Collectors.toSet())
-        );
-    }
-
-    static Map.Entry<String, String> toEntry(String colonSeparatedText) {
-        List<String> pair = Splitter.on(':')
-                .omitEmptyStrings()
-                .trimResults()
-                .limit(2)
-                .splitToList(colonSeparatedText);
-        return Maps.immutableEntry(pair.get(0), pair.get(1));
+    static Map<String, String> toMap(String commaSeparatedText) {
+        return splitToMap(commaSeparatedText, ',', ':');
     }
 
     static String keyOf(String keyTemplate, String issueTypeId) {

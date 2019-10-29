@@ -29,6 +29,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import static ro.albertlr.jira.Utils.split;
+
 @Slf4j
 public class CLI {
 
@@ -95,9 +97,16 @@ public class CLI {
                 break;
                 case MOVE: {
                     String destProjectKey = Params.getParameter(cli, Params.PROJECT_ARG, "JVCLD");
-                    String cloneKey = action.execute(jira, jiraSourceKey, destProjectKey);
+                    Iterable<String> sourceKeys = split(jiraSourceKey);
 
-                    log.info("Moved {} to {}", jiraSourceKey, cloneKey);
+                    for (String sourceKey : sourceKeys) {
+                        try {
+                            String cloneKey = action.execute(jira, sourceKey, destProjectKey);
+                            log.info("Moved {} to {}", jiraSourceKey, cloneKey);
+                        } catch (Exception e) {
+                            log.error("Could not clone {}", sourceKey, e);
+                        }
+                    }
                 }
                 break;
                 default:

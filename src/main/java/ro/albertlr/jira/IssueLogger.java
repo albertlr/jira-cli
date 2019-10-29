@@ -23,13 +23,14 @@ import com.atlassian.jira.rest.client.api.domain.BasicIssue;
 import com.atlassian.jira.rest.client.api.domain.Issue;
 import com.atlassian.jira.rest.client.api.domain.IssueLink;
 import com.atlassian.jira.rest.client.api.domain.Status;
-import com.google.common.base.Splitter;
 import lombok.experimental.UtilityClass;
 import org.slf4j.Logger;
 import ro.albertlr.jira.Action.Name;
 import ro.albertlr.jira.Configuration.ActionConfig;
 
 import java.util.Optional;
+
+import static ro.albertlr.jira.Utils.split;
 
 @UtilityClass
 public class IssueLogger {
@@ -72,10 +73,7 @@ public class IssueLogger {
         StringBuilder buffer = new StringBuilder(512);
         ActionConfig config = getConfiguration().getActionConfigs().get(Name.GET);
 
-        Iterable<String> properties = Splitter.on(',')
-                .trimResults()
-                .omitEmptyStrings()
-                .split(config.getProperty(infoStrategy, ""));
+        Iterable<String> properties = split(config.getProperty(infoStrategy, ""));
 
         for (String property : properties) {
             switch (property) {

@@ -22,7 +22,6 @@ package ro.albertlr.jira.action;
 import com.atlassian.jira.rest.client.api.domain.BasicIssue;
 import com.atlassian.jira.rest.client.api.domain.Issue;
 import com.google.common.base.Joiner;
-import com.google.common.base.Splitter;
 import com.google.common.base.Throwables;
 import io.atlassian.util.concurrent.Promise;
 import lombok.extern.slf4j.Slf4j;
@@ -35,16 +34,15 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.concurrent.ExecutionException;
 
+import static ro.albertlr.jira.Utils.split;
+
 @Slf4j
 public class Clone implements Action<String> {
     @Override
     public String execute(Jira jira, String... params) {
         String jiraSourceKey = Action.paramAt(params, 0, "sourceKey");
 
-        Iterable<String> sourceKeys = Splitter.on(',')
-                .trimResults()
-                .omitEmptyStrings()
-                .split(jiraSourceKey);
+        Iterable<String> sourceKeys = split(jiraSourceKey);
 
         Collection<String> clonedKeys = new ArrayList<>(5);
         for (String sourceKey : sourceKeys) {

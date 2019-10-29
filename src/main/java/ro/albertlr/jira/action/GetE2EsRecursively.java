@@ -41,6 +41,7 @@ import static ro.albertlr.jira.Action.paramAt;
 import static ro.albertlr.jira.CLI.DEPENDS_ON_LINK;
 import static ro.albertlr.jira.CLI.ISSUE_E2E;
 import static ro.albertlr.jira.CLI.TESTED_BY_LINK;
+import static ro.albertlr.jira.Utils.split;
 
 public class GetE2EsRecursively implements Action<Map<String, Set<Issue>>> {
     @Override
@@ -71,7 +72,7 @@ public class GetE2EsRecursively implements Action<Map<String, Set<Issue>>> {
     }
 
     private static Map<String, Set<Issue>> doGetIssueE2Es(Jira jira, String issueKeys) {
-        Iterable<String> issues = Splitter.on(',').trimResults().omitEmptyStrings().split(issueKeys);
+        Iterable<String> issues = split(issueKeys);
         return doGetIssueE2Es(jira, issues);
     }
 
