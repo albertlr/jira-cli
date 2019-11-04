@@ -4,5 +4,4 @@
 *.iml
 *.ipr
 *.iws
-issueData.json
-cookieJar.json
+*.json
