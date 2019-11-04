@@ -89,6 +89,15 @@ public class Params {
                         .argName("ISSUE_ID")
                         .build()
         );
+        options.addOption(
+                Option.builder()
+                        .longOpt("transition-phase")
+                        .desc("The (auto) transition phase to do. Known phases: block,unblock,start,re-open," +
+                                "qe-review,block,unblock,reject(review only),accept(review only)")
+                        .hasArg()
+                        .argName("PHASE")
+                        .build()
+        );
 
         options.addOption(
                 Option.builder("s")

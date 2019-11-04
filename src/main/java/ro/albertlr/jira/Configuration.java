@@ -19,6 +19,7 @@
  */
 package ro.albertlr.jira;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Maps;
@@ -29,6 +30,7 @@ import lombok.ToString;
 import lombok.extern.slf4j.Slf4j;
 
 import java.io.IOException;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.EnumMap;
 import java.util.HashMap;
@@ -52,6 +54,9 @@ public class Configuration {
     public static final String CONF_REQUIRED_FIELDS = "%s.requiredFields";
     public static final String CONF_REQUIRED_FIELD_OPTIONS = "%s.requiredField.%s.options";
     public static final String CONF_REQUIRED_FIELD_OPTIONS_DEFAULT = "%s.requiredField.%s.optionsDefault";
+    public static final String CONF_TRANSITIONS = "%s.transitions";
+    public static final String CONF_TRANSITIONS_PHASE = "%s.transitions.%s";
+
 
     public static Configuration loadConfiguration() {
         Properties properties = new Properties();
@@ -69,6 +74,7 @@ public class Configuration {
     @Getter
     @ToString
     public static class IssueTypeConfig {
+        private final String issueTypeId;
         private final String jiraIssueTypeName;
         private final Set<String> fieldsToNotClone;
         private final Set<String> requiredFields;
@@ -76,9 +82,17 @@ public class Configuration {
         private final Map<String, Map<String, Object>> requiredFieldOptions;
         @Singular("requiredFieldOptionDefault")
         private final Map<String, Map<String, Object>> requiredFieldOptionsDefault;
+        private final Collection<String> transitionPhases;
+        @Singular("transition")
+        private final Map<String, Collection<String>> transitions;
 
         public Map<String, Object> getRequiredFieldOptionsDefault(String requiredField) {
             return requiredFieldOptionsDefault.get(requiredField);
+        }
+
+        public Collection<String> getTransitionFlow(String phase) {
+            return Optional.ofNullable(transitions.get(phase))
+                    .orElse(Collections.emptyList());
         }
     }
 
@@ -131,6 +145,7 @@ public class Configuration {
 
         for (String issueTypeId : this.issueTypeIds) {
             IssueTypeConfig.IssueTypeConfigBuilder configBuilder = IssueTypeConfig.builder()
+                    .issueTypeId(issueTypeId)
                     .jiraIssueTypeName(config.getProperty(keyOf(CONF_ISSUE_TYPE_NAME, issueTypeId)))
                     .fieldsToNotClone(toSet(config.getProperty(keyOf(CONF_FIELDS_TO_NOT_CLONE, issueTypeId))));
 
@@ -148,6 +163,16 @@ public class Configuration {
                         requiredField,
                         ImmutableMap.copyOf(optionsDefault)
                 );
+            }
+
+            Set<String> transitionPhases = toSet(config.getProperty(keyOf(CONF_TRANSITIONS, issueTypeId)));
+            configBuilder.transitionPhases(transitionPhases);
+            for (String transitionPhase : transitionPhases) {
+                Iterable<String> transitions = split(
+                        config.getProperty(keyOf(CONF_TRANSITIONS_PHASE, issueTypeId, transitionPhase)),
+                        "->"
+                );
+                configBuilder.transition(transitionPhase, ImmutableList.copyOf(transitions));
             }
 
             IssueTypeConfig issueTypeConfig = configBuilder.build();

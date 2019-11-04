@@ -25,6 +25,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.cli.CommandLine;
 
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -83,10 +84,34 @@ public class CLI {
                     }
                 }
                 break;
+                case GET_TRANSITIONS: {
+                    Collection<Transition> transitions = action.execute(jira, jiraSourceKey);
+
+                    log.info("Transitions for {}", jiraSourceKey);
+                    for (Transition transition : transitions) {
+                        log.info("    {} - {} :: {}",
+                                transition.getId(),
+                                transition.getName(),
+                                transition.getFields()
+                        );
+                    }
+                }
+                break;
                 case ASSIGN_TO_ME: {
                     action.execute(jira, jiraSourceKey);
 
                     log.info("Successfully assigned {} to me", jiraSourceKey);
+                }
+                break;
+                case ADVANCE_ISSUE:
+                case BLOCK_ISSUE:
+                case UNBLOCK_ISSUE: {
+                    action.execute(jira, jiraSourceKey);
+                }
+                break;
+                case AUTO_TRANSITION_ISSUE: {
+                    String transitionPhase = cli.getOptionValue("transition-phase");
+                    action.execute(jira, jiraSourceKey, transitionPhase);
                 }
                 break;
                 case CLONE: {

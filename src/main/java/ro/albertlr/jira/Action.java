@@ -7,9 +7,9 @@
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *      http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -25,13 +25,18 @@ import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
+import ro.albertlr.jira.action.AdvanceIssue;
 import ro.albertlr.jira.action.AssignToMe;
+import ro.albertlr.jira.action.AutoTransitionIssue;
+import ro.albertlr.jira.action.BlockIssue;
 import ro.albertlr.jira.action.Clone;
 import ro.albertlr.jira.action.Get;
 import ro.albertlr.jira.action.GetE2EsRecursively;
+import ro.albertlr.jira.action.GetTransitions;
 import ro.albertlr.jira.action.Link;
 import ro.albertlr.jira.action.Move;
 import ro.albertlr.jira.action.NoOp;
+import ro.albertlr.jira.action.UnblockIssue;
 
 import java.util.Arrays;
 
@@ -44,8 +49,13 @@ public interface Action<R> {
     @Slf4j
     enum Name {
         GET("get", Get::new),
-        LINK("link", Link::new),
+        GET_TRANSITIONS("get-transitions", GetTransitions::new),
         GET_E2ES("get-e2es", GetE2EsRecursively::new),
+        LINK("link", Link::new),
+        ADVANCE_ISSUE("advance-issue", AdvanceIssue::new),
+        AUTO_TRANSITION_ISSUE("auto-transition-issue", AutoTransitionIssue::new),
+        BLOCK_ISSUE("block-issue", BlockIssue::new),
+        UNBLOCK_ISSUE("unblock-issue", UnblockIssue::new),
         CLONE("clone", Clone::new),
         MOVE("move", Move::new),
         ASSIGN_TO_ME("assignToMe", AssignToMe::new),
@@ -91,4 +101,13 @@ public interface Action<R> {
 
         return params[index];
     }
+
+    static String paramAt(String[] params, int index, String paramName, String defaultValue) {
+        try {
+            return paramAt(params, index, paramName);
+        } catch (RuntimeException e) {
+            return defaultValue;
+        }
+    }
+
 }

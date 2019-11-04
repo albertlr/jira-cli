@@ -23,6 +23,7 @@ import com.atlassian.jira.rest.client.api.domain.BasicIssue;
 import com.atlassian.jira.rest.client.api.domain.Issue;
 import com.atlassian.jira.rest.client.api.domain.IssueLink;
 import com.atlassian.jira.rest.client.api.domain.Status;
+import com.atlassian.jira.rest.client.api.domain.Transition;
 import lombok.experimental.UtilityClass;
 import org.slf4j.Logger;
 import ro.albertlr.jira.Action.Name;
@@ -59,6 +60,15 @@ public class IssueLogger {
 
     public static void simpleLog(Logger log, Issue issue) {
         log.info("Issue {}", issueInfo(issue, SHORT_LOG_STRATEGY));
+    }
+
+    public static void simpleLog(Logger log, Issue issue, Iterable<Transition> transitions) {
+        basicLog(log, issue);
+        StringBuilder buffer = new StringBuilder(128);
+        for (Transition transition : transitions) {
+            buffer.append("\t").append(transition).append('\n');
+        }
+        log.info("Transitions {}", buffer);
     }
 
     public static void shortLog(Logger log, Issue issue) {

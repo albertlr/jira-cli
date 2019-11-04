@@ -30,6 +30,7 @@ import com.atlassian.jira.rest.client.api.domain.IssueFieldId;
 import com.atlassian.jira.rest.client.api.domain.Project;
 import com.atlassian.jira.rest.client.api.domain.Resolution;
 import com.atlassian.jira.rest.client.api.domain.Status;
+import com.atlassian.jira.rest.client.api.domain.Transition;
 import com.atlassian.jira.rest.client.api.domain.User;
 import com.atlassian.jira.rest.client.api.domain.Version;
 import com.atlassian.jira.rest.client.api.domain.input.CannotTransformValueException;
@@ -38,6 +39,7 @@ import com.atlassian.jira.rest.client.api.domain.input.FieldInput;
 import com.atlassian.jira.rest.client.api.domain.input.IssueInput;
 import com.atlassian.jira.rest.client.api.domain.input.IssueInputBuilder;
 import com.atlassian.jira.rest.client.api.domain.input.LinkIssuesInput;
+import com.atlassian.jira.rest.client.api.domain.input.TransitionInput;
 import com.atlassian.jira.rest.client.internal.async.AsynchronousJiraRestClientFactory;
 import com.google.common.base.Throwables;
 import com.google.common.collect.Iterables;
@@ -177,6 +179,28 @@ public class Jira implements AutoCloseable {
         } catch (ExecutionException e) {
             throw new RuntimeException(format("failed to load issue %s", issueKey), e.getCause());
         }
+    }
+
+    public Iterable<Transition> loadTransitionsFor(Issue issue) {
+        try {
+            Promise<Iterable<Transition>> transisionsPromise = issueClient().getTransitions(issue);
+            Iterable<Transition> transitions = transisionsPromise.get();
+            return transitions;
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            log.error(e.getMessage(), e);
+        } catch (ExecutionException e) {
+            log.error(e.getCause().getMessage(), e.getCause());
+        }
+        return Collections.emptyList();
+    }
+
+    public Promise<Void> transitionIssue(Issue issue, Transition transition) {
+        TransitionInput transitionInput = new TransitionInput(transition.getId());
+        Promise<Void> result = issueClient()
+                .transition(issue, transitionInput);
+
+        return result;
     }
 
     public Promise<BasicIssue> cloneIssue(Issue source, CloneConfig config) {

@@ -39,6 +39,13 @@ public class Utils {
                 .split(delimitedString);
     }
 
+    public static Iterable<String> split(String delimitedString, String delimiter) {
+        return Splitter.on(delimiter)
+                .omitEmptyStrings()
+                .trimResults()
+                .split(delimitedString);
+    }
+
     public static List<String> splitToList(String delimitedString, char delimiter) {
         return Lists.newArrayList(split(delimitedString, delimiter));
     }
