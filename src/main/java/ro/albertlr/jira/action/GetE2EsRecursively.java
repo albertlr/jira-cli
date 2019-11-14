@@ -24,22 +24,27 @@ import com.atlassian.jira.rest.client.api.domain.IssueLink;
 import com.atlassian.jira.rest.client.api.domain.IssueLinkType;
 import com.atlassian.jira.rest.client.api.domain.IssueLinkType.Direction;
 import com.atlassian.jira.rest.client.api.domain.IssueType;
-import com.google.common.base.Splitter;
 import com.google.common.collect.Lists;
 import ro.albertlr.jira.Action;
 import ro.albertlr.jira.Jira;
 
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Queue;
 import java.util.Set;
 import java.util.TreeSet;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 import static ro.albertlr.jira.Action.paramAt;
 import static ro.albertlr.jira.CLI.DEPENDS_ON_LINK;
 import static ro.albertlr.jira.CLI.ISSUE_E2E;
+import static ro.albertlr.jira.CLI.ISSUE_TYPE_CUSTOMER_DEFECT;
+import static ro.albertlr.jira.CLI.ISSUE_TYPE_DEFECT;
+import static ro.albertlr.jira.CLI.ISSUE_TYPE_FEATURE_STORY;
 import static ro.albertlr.jira.CLI.TESTED_BY_LINK;
 import static ro.albertlr.jira.Utils.split;
 
@@ -103,7 +108,7 @@ public class GetE2EsRecursively implements Action<Map<String, Set<Issue>>> {
             e2es.put(issueKey, e2esOf);
 
             // if is an E2E then found the "Depends On" links
-            if (isE2e(issue.getIssueType())) {
+            if (isTestableType(issue.getIssueType())) {
                 for (IssueLink link : Jira.safe(issue.getIssueLinks())) {
                     if (isDependsOnLink(link.getIssueLinkType())) {
                         String e2eIssueKey = link.getTargetIssueKey();
@@ -116,7 +121,7 @@ public class GetE2EsRecursively implements Action<Map<String, Set<Issue>>> {
                 }
             } else {
                 // if Defect or Customer Defect then found the tested by links
-                if (isDefect(issue.getIssueType()) || isCustomerDefect(issue.getIssueType())) {
+                if (isReleasableType(issue.getIssueType())) {
                     boolean hasTestedBy = false;
                     for (IssueLink link : Jira.safe(issue.getIssueLinks())) {
                         if (isTestedByLink(link.getIssueLinkType())) {
@@ -135,16 +140,49 @@ public class GetE2EsRecursively implements Action<Map<String, Set<Issue>>> {
         return e2es;
     }
 
+    private static boolean isReleasableType(IssueType issueType) {
+        return isOfType(
+                issueType,
+                Arrays.asList(
+                        GetE2EsRecursively::isDefect,
+                        GetE2EsRecursively::isCustomerDefect,
+                        GetE2EsRecursively::isFeatureStory
+                )
+        );
+    }
+
+    private static boolean isTestableType(IssueType issueType) {
+        return isOfType(
+                issueType,
+                Arrays.asList(
+                        GetE2EsRecursively::isE2e
+                )
+        );
+    }
+
+    private static boolean isOfType(IssueType issueType, Collection<Predicate<IssueType>> issueTypeChecks) {
+        for (Predicate<IssueType> check : issueTypeChecks) {
+            if (check.test(issueType)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     public static boolean isE2e(IssueType issueType) {
         return ISSUE_E2E.equals(issueType.getName());
     }
 
     public static boolean isCustomerDefect(IssueType issueType) {
-        return "Customer Defect".equals(issueType.getName());
+        return ISSUE_TYPE_CUSTOMER_DEFECT.equals(issueType.getName());
     }
 
     public static boolean isDefect(IssueType issueType) {
-        return "Defect".equals(issueType.getName());
+        return ISSUE_TYPE_DEFECT.equals(issueType.getName());
+    }
+
+    public static boolean isFeatureStory(IssueType issueType) {
+        return ISSUE_TYPE_FEATURE_STORY.equals(issueType.getName());
     }
 
     public static boolean isDependsOnLink(IssueLinkType issueLinkType) {

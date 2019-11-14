@@ -35,6 +35,10 @@ import static ro.albertlr.jira.Utils.split;
 @Slf4j
 public class CLI {
 
+    public static final String ISSUE_TYPE_CUSTOMER_DEFECT = "Customer Defect";
+    public static final String ISSUE_TYPE_DEFECT = "Defect";
+    public static final String ISSUE_TYPE_FEATURE_STORY = "Feature Story";
+
     public static final String ISSUE_E2E = "End-to-end Test";
     public static final String DEPENDS_ON_LINK = "Depends On";
     public static final String TESTED_BY_LINK = "Tests Writing";

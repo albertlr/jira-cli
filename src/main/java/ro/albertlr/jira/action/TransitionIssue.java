@@ -31,18 +31,19 @@ import ro.albertlr.jira.Jira;
 import ro.albertlr.jira.Utils;
 
 import java.util.Collection;
+import java.util.Collections;
 import java.util.InputMismatchException;
 import java.util.List;
 import java.util.Scanner;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-import static ro.albertlr.jira.action.AdvanceIssue.ChoiceStrategy.CONFIG_AND_BLOCK;
-import static ro.albertlr.jira.action.AdvanceIssue.ChoiceStrategy.TERMINAL;
+import static ro.albertlr.jira.action.TransitionIssue.ChoiceStrategy.CONFIG_AND_BLOCK;
+import static ro.albertlr.jira.action.TransitionIssue.ChoiceStrategy.TERMINAL;
 import static ro.albertlr.jira.action.BlockIssue.BLOCKED_PHASE;
 
 @Slf4j
-public class AdvanceIssue implements Action<Void> {
+public class TransitionIssue implements Action<Void> {
 
     @Override
     public Void execute(Jira jira, String... params) {
@@ -51,6 +52,7 @@ public class AdvanceIssue implements Action<Void> {
 
         ChoiceStrategy choiceStrategy = ChoiceStrategy.valueOf(chooseStrategyParam);
 
+        issues:
         for (String issueKey : Utils.split(issueKeys)) {
             // get issue
             Issue issue = jira.loadIssue(issueKey);
@@ -63,7 +65,9 @@ public class AdvanceIssue implements Action<Void> {
                 chosen = choiceStrategy.choose(issue, transitions);
 
                 // transition the ticket
-                if (chosen != null) {
+                if (chosen != null
+                        && !CANCEL_TRANSITION.equals(chosen)
+                        && !SKIP_TRANSITION.equals(chosen)) {
                     Promise<Void> transitioning = jira.transitionIssue(issue, chosen);
                     transitioning.claim();
                     log.info("Issue {} - {} moved to {} - {}", issueKey, issue.getSummary(), chosen.getId(), chosen.getName());
@@ -72,6 +76,12 @@ public class AdvanceIssue implements Action<Void> {
                             && chosen.getName().contains("Blocked")) {
                         chosen = null;
                     }
+                } else if (CANCEL_TRANSITION.equals(chosen)) {
+                    // stop transitioning
+                    break issues;
+                } else if (SKIP_TRANSITION.equals(chosen)) {
+                    // skip transitioning
+                    continue issues;
                 } else {
                     chosen = TERMINAL.choose(issue, transitions);
                     if (chosen != null) {
@@ -86,6 +96,9 @@ public class AdvanceIssue implements Action<Void> {
         return null;
     }
 
+    private static Transition CANCEL_TRANSITION = new Transition("Cancel", -1, Collections.emptyList());
+    private static Transition SKIP_TRANSITION = new Transition("Skip", -1, Collections.emptyList());
+
     public enum ChoiceStrategy {
         TERMINAL {
             @Override
@@ -97,6 +110,7 @@ public class AdvanceIssue implements Action<Void> {
                 Scanner inputReader = new Scanner(System.in);
 
                 System.out.printf("Choose one of the following options%n");
+                System.out.printf(" -1) skip%n");
                 System.out.printf("  0) cancel%n");
                 for (int choice = 1; choice <= options.size(); choice++) {
                     System.out.printf("  %d) %s%n", choice, options.get(choice - 1));
@@ -105,9 +119,13 @@ public class AdvanceIssue implements Action<Void> {
                 try {
                     System.out.printf("choose transition ID: ");
                     int choice = inputReader.nextInt();
+                    if (choice == -1) {
+                        System.out.printf("You skip your selection%n");
+                        return SKIP_TRANSITION;
+                    }
                     if (choice == 0) {
                         System.out.printf("You canceled your selection%n");
-                        return null;
+                        return CANCEL_TRANSITION;
                     }
                     System.out.printf("You selected: %s%n", choice <= options.size() ? options.get(choice - 1) : choice);
                     Transition chosen = transitions.stream()

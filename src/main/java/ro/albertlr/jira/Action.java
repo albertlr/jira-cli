@@ -25,7 +25,7 @@ import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
-import ro.albertlr.jira.action.AdvanceIssue;
+import ro.albertlr.jira.action.TransitionIssue;
 import ro.albertlr.jira.action.AssignToMe;
 import ro.albertlr.jira.action.AutoTransitionIssue;
 import ro.albertlr.jira.action.BlockIssue;
@@ -52,7 +52,7 @@ public interface Action<R> {
         GET_TRANSITIONS("get-transitions", GetTransitions::new),
         GET_E2ES("get-e2es", GetE2EsRecursively::new),
         LINK("link", Link::new),
-        ADVANCE_ISSUE("advance-issue", AdvanceIssue::new),
+        ADVANCE_ISSUE("advance-issue", TransitionIssue::new),
         AUTO_TRANSITION_ISSUE("auto-transition-issue", AutoTransitionIssue::new),
         BLOCK_ISSUE("block-issue", BlockIssue::new),
         UNBLOCK_ISSUE("unblock-issue", UnblockIssue::new),
