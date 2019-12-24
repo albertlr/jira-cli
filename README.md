@@ -53,3 +53,12 @@ mvn clean install
 ```
 
 and then you can run the jar directly from the `target` folder as seen in the bash scripts
+
+## authenticate
+
+In order to authenticate to Jira, you need to have a `~/.jira_auth` file on your home folder.
+The content of `.jira_auth` has to be the Base64 encoded username and password
+```
+echo "<username>:<password>" | base64
+```
+
