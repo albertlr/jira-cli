@@ -44,6 +44,7 @@ import static ro.albertlr.jira.CLI.DEPENDS_ON_LINK;
 import static ro.albertlr.jira.CLI.ISSUE_E2E;
 import static ro.albertlr.jira.CLI.ISSUE_TYPE_CUSTOMER_DEFECT;
 import static ro.albertlr.jira.CLI.ISSUE_TYPE_DEFECT;
+import static ro.albertlr.jira.CLI.ISSUE_TYPE_FEATURE_DEFECT;
 import static ro.albertlr.jira.CLI.ISSUE_TYPE_FEATURE_STORY;
 import static ro.albertlr.jira.CLI.TESTED_BY_LINK;
 import static ro.albertlr.jira.Utils.split;
@@ -120,7 +121,7 @@ public class GetE2EsRecursively implements Action<Map<String, Set<Issue>>> {
                     }
                 }
             } else {
-                // if Defect or Customer Defect then found the tested by links
+                // if Defect, Customer Defect, Feature Story or Feature Defect then found the tested by links
                 if (isReleasableType(issue.getIssueType())) {
                     boolean hasTestedBy = false;
                     for (IssueLink link : Jira.safe(issue.getIssueLinks())) {
@@ -146,7 +147,8 @@ public class GetE2EsRecursively implements Action<Map<String, Set<Issue>>> {
                 Arrays.asList(
                         GetE2EsRecursively::isDefect,
                         GetE2EsRecursively::isCustomerDefect,
-                        GetE2EsRecursively::isFeatureStory
+                        GetE2EsRecursively::isFeatureStory,
+                        GetE2EsRecursively::isFeatureDefect
                 )
         );
     }
@@ -183,6 +185,10 @@ public class GetE2EsRecursively implements Action<Map<String, Set<Issue>>> {
 
     public static boolean isFeatureStory(IssueType issueType) {
         return ISSUE_TYPE_FEATURE_STORY.equals(issueType.getName());
+    }
+
+    public static boolean isFeatureDefect(IssueType issueType) {
+        return ISSUE_TYPE_FEATURE_DEFECT.equals(issueType.getName());
     }
 
     public static boolean isDependsOnLink(IssueLinkType issueLinkType) {
