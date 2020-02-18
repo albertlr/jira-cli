@@ -27,8 +27,8 @@ import org.apache.commons.cli.CommandLine;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 import static ro.albertlr.jira.Utils.split;
 
@@ -38,6 +38,7 @@ public class CLI {
     public static final String ISSUE_TYPE_CUSTOMER_DEFECT = "Customer Defect";
     public static final String ISSUE_TYPE_DEFECT = "Defect";
     public static final String ISSUE_TYPE_FEATURE_STORY = "Feature Story";
+    public static final String ISSUE_TYPE_FEATURE_DEFECT = "Feature Defect";
 
     public static final String ISSUE_E2E = "End-to-end Test";
     public static final String DEPENDS_ON_LINK = "Depends On";
@@ -78,13 +79,23 @@ public class CLI {
                     Map<String, Set<Issue>> e2ea = action.execute(jira, jiraSourceKey, String.valueOf(recursive));
 
                     log.info("E2Es for {}", jiraSourceKey);
+                    System.out.printf("\"issue\",\"summary\",\"e2e\"%n");
                     for (Map.Entry<String, Set<Issue>> listOfDependencies : e2ea.entrySet()) {
-                        log.info("    {} -> [{}]",
-                                listOfDependencies.getKey(),
-                                listOfDependencies.getValue().stream()
-                                        .map(issue -> issue.getKey() + "(" + issue.getStatus().getName() + ")")
-                                        .collect(Collectors.joining(","))
-                        );
+//                        log.info("    {} -> [{}]",
+//                                listOfDependencies.getKey(),
+//                                listOfDependencies.getValue().stream()
+//                                        .map(issue -> issue.getKey() + "(" + issue.getStatus().getName() + ")")
+//                                        .collect(Collectors.joining(","))
+//                        );
+                        for (Issue e2e: listOfDependencies.getValue()) {
+                            System.out.printf("\"%s\",\"%s\",\"%s\"%n", listOfDependencies.getKey(), "", e2e.getKey());
+                        }
+//                        log.info("    {} -> [{}]",
+//                                listOfDependencies.getKey(),
+//                                listOfDependencies.getValue().stream()
+//                                        .map(issue -> issue.getKey() + "(" + issue.getStatus().getName() + ")")
+//                                        .collect(Collectors.joining(","))
+//                        );
                     }
                 }
                 break;
@@ -101,10 +112,17 @@ public class CLI {
                     }
                 }
                 break;
-                case ASSIGN_TO_ME: {
-                    action.execute(jira, jiraSourceKey);
+                case ASSIGN_TO: {
+                    String whoami = "@me";
+                    if (cli.hasOption("assign-to")) {
+                        whoami = Optional.ofNullable(cli.getOptionValue("assign-to"))
+                                .orElse("");
+                        action.execute(jira, jiraSourceKey, whoami);
+                    } else {
+                        action.execute(jira, jiraSourceKey);
+                    }
 
-                    log.info("Successfully assigned {} to me", jiraSourceKey);
+                    log.info("Successfully assigned {} to {}", jiraSourceKey, whoami);
                 }
                 break;
                 case ADVANCE_ISSUE:
@@ -161,4 +179,5 @@ public class CLI {
         }
         return null;
     }
+
 }

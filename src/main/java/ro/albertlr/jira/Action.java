@@ -26,7 +26,7 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import ro.albertlr.jira.action.TransitionIssue;
-import ro.albertlr.jira.action.AssignToMe;
+import ro.albertlr.jira.action.AssignTo;
 import ro.albertlr.jira.action.AutoTransitionIssue;
 import ro.albertlr.jira.action.BlockIssue;
 import ro.albertlr.jira.action.Clone;
@@ -58,7 +58,7 @@ public interface Action<R> {
         UNBLOCK_ISSUE("unblock-issue", UnblockIssue::new),
         CLONE("clone", Clone::new),
         MOVE("move", Move::new),
-        ASSIGN_TO_ME("assignToMe", AssignToMe::new),
+        ASSIGN_TO("assignTo", AssignTo::new),
 
         unknown("???", NoOp::new);
 

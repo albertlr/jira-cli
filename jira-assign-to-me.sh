@@ -2,4 +2,4 @@
 
 source prepare-env.sh
 
-java -jar target/jira-cli-1.0-SNAPSHOT-jar-with-dependencies.jar --action assignToMe --source "$1"
+java -jar target/jira-cli-1.0-SNAPSHOT-jar-with-dependencies.jar --action assignTo --source "$1"

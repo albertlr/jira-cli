@@ -142,6 +142,14 @@ public class Params {
                         .build()
         );
 
+        options.addOption(
+                Option.builder()
+                        .longOpt("assign-to")
+                        .desc("Assign to. if '@me' assign to the current user. -1 assigns to default user to assign to; " +
+                                "Empty string means un-assign")
+                .build()
+        );
+
         return options;
     }
 
