@@ -23,12 +23,14 @@ import com.atlassian.jira.rest.client.api.domain.Issue;
 import com.atlassian.jira.rest.client.api.domain.Transition;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.cli.CommandLine;
+import ro.albertlr.jira.csv.Exporter;
 
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import static ro.albertlr.jira.Utils.split;
 
@@ -81,15 +83,15 @@ public class CLI {
                     log.info("E2Es for {}", jiraSourceKey);
                     System.out.printf("\"issue\",\"summary\",\"e2e\"%n");
                     for (Map.Entry<String, Set<Issue>> listOfDependencies : e2ea.entrySet()) {
-//                        log.info("    {} -> [{}]",
-//                                listOfDependencies.getKey(),
-//                                listOfDependencies.getValue().stream()
-//                                        .map(issue -> issue.getKey() + "(" + issue.getStatus().getName() + ")")
-//                                        .collect(Collectors.joining(","))
-//                        );
-                        for (Issue e2e: listOfDependencies.getValue()) {
-                            System.out.printf("\"%s\",\"%s\",\"%s\"%n", listOfDependencies.getKey(), "", e2e.getKey());
-                        }
+                        log.info("    {} -> [{}]",
+                                listOfDependencies.getKey(),
+                                listOfDependencies.getValue().stream()
+                                        .map(issue -> issue.getKey() + "(" + issue.getStatus().getName() + ")")
+                                        .collect(Collectors.joining(","))
+                        );
+//                        for (Issue e2e: listOfDependencies.getValue()) {
+//                            System.out.printf("\"%s\",\"%s\",\"%s\"%n", listOfDependencies.getKey(), "", e2e.getKey());
+//                        }
 //                        log.info("    {} -> [{}]",
 //                                listOfDependencies.getKey(),
 //                                listOfDependencies.getValue().stream()
@@ -97,6 +99,9 @@ public class CLI {
 //                                        .collect(Collectors.joining(","))
 //                        );
                     }
+
+                    Exporter.exportToCsv(jira, e2ea);
+                    System.out.printf("done%n");
                 }
                 break;
                 case GET_TRANSITIONS: {
@@ -137,9 +142,16 @@ public class CLI {
                 }
                 break;
                 case CLONE: {
-                    String cloneKey = action.execute(jira, jiraSourceKey);
+                    Iterable<String> sourceKeys = split(jiraSourceKey);
+                    for (String sourceKey : sourceKeys) {
+                        try {
+                            String cloneKey = action.execute(jira, sourceKey);
 
-                    log.info("Cloned {} to {}", jiraSourceKey, cloneKey);
+                            log.info("Cloned {} to {}", sourceKey, cloneKey);
+                        } catch (Exception exception) {
+                            log.error("Could not clone {}", sourceKey, exception);
+                        }
+                    }
                 }
                 break;
                 case MOVE: {

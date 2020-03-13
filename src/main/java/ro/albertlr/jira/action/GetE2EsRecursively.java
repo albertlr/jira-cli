@@ -141,7 +141,7 @@ public class GetE2EsRecursively implements Action<Map<String, Set<Issue>>> {
         return e2es;
     }
 
-    private static boolean isReleasableType(IssueType issueType) {
+    public static boolean isReleasableType(IssueType issueType) {
         return isOfType(
                 issueType,
                 Arrays.asList(
