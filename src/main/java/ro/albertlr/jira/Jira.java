@@ -252,7 +252,7 @@ public class Jira implements AutoCloseable {
         if (config.isCloningFixVersions()) {
             issueBuilder.setFixVersions(source.getFixVersions());
         }
-        if (config.isCloningComponents()) {
+        if (config.isCloningComponents() && source.getProject().getKey().equals(targetProject.getKey())) {
             issueBuilder.setComponents(source.getComponents());
         }
         Collection<IssueField> issueFields = Lists.newArrayList(source.getFields());

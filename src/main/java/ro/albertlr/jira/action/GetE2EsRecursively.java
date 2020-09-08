@@ -40,6 +40,7 @@ import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 import static ro.albertlr.jira.Action.paramAt;
+import static ro.albertlr.jira.CLI.COVERS_LINK;
 import static ro.albertlr.jira.CLI.DEPENDS_ON_LINK;
 import static ro.albertlr.jira.CLI.ISSUE_E2E;
 import static ro.albertlr.jira.CLI.ISSUE_TYPE_CUSTOMER_DEFECT;
@@ -210,5 +211,16 @@ public class GetE2EsRecursively implements Action<Map<String, Set<Issue>>> {
         return TESTED_BY_LINK.equals(issueLinkType.getName())
                 && Direction.INBOUND.equals(issueLinkType.getDirection());
     }
+
+    public static boolean isCoversLink(IssueLinkType issueLinkType) {
+        return COVERS_LINK.equals(issueLinkType.getName())
+                && Direction.OUTBOUND.equals(issueLinkType.getDirection());
+    }
+
+    public static boolean isCoveredByLink(IssueLinkType issueLinkType) {
+        return COVERS_LINK.equals(issueLinkType.getName())
+                && Direction.INBOUND.equals(issueLinkType.getDirection());
+    }
+
 
 }

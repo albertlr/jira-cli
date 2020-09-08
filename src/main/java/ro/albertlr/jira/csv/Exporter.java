@@ -20,9 +20,8 @@
 package ro.albertlr.jira.csv;
 
 import com.atlassian.jira.rest.client.api.domain.Issue;
-import com.atlassian.jira.rest.client.api.domain.IssueType;
+import com.atlassian.jira.rest.client.api.domain.IssueLink;
 import com.google.common.collect.ImmutableList;
-import com.sun.prism.impl.Disposer.Record;
 import lombok.Builder;
 import lombok.Getter;
 import org.apache.commons.csv.CSVFormat;
@@ -37,13 +36,44 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
 import static java.util.Optional.ofNullable;
 
 public class Exporter {
+    public static void issueWithFunctionalArea(Jira jira, Collection<String> issueKeys) throws IOException {
+        RecordWithFA.RecordWithFABuilder builder = null;
+        Collection<RecordWithFA> records = new ArrayList<>();
+        for (String issueKey : issueKeys) {
+            Issue issue = jira.loadIssue(issueKey);
+
+            builder = RecordWithFA.builder()
+                    .ticketId(issue.getKey())
+                    .summary(issue.getSummary());
+
+            for (IssueLink link : issue.getIssueLinks()) {
+                link.getIssueLinkType().getName();
+            }
+
+            if (GetE2EsRecursively.isReleasableType(issue.getIssueType())) {
+                builder.ticketId(issue.getKey());
+            } else {
+                builder.faId(issue.getKey());
+            }
+
+            records.add(builder.build());
+        }
+
+        saveMapping(
+                "output.csv",
+                records.stream()
+                        .map(rec -> (Iterable<String>) rec)
+                        .collect(Collectors.toList()),
+                (Header[]) Header.values()
+        );
+    }
+
     public static void exportToCsv(Jira jira, Map<String, Set<Issue>> e2es) throws IOException {
         Record.RecordBuilder builder = null;
         Collection<Record> records = new ArrayList<>();
@@ -95,6 +125,27 @@ public class Exporter {
                             ofNullable(e2eId).orElse(""),
                             summary,
                             ofNullable(dependsOnE2EId).orElse("")
+                    )
+                    .iterator();
+        }
+    }
+
+    @Builder
+    @Getter
+    public static class RecordWithFA implements Iterable<String> {
+        private String ticketId;
+        private String summary;
+        private String faId;
+        private String faSummary;
+
+        @Override
+        public Iterator<String> iterator() {
+            return ImmutableList.of
+                    (
+                            ofNullable(ticketId).orElse(""),
+                            summary,
+                            ofNullable(faId).orElse(""),
+                            faSummary
                     )
                     .iterator();
         }

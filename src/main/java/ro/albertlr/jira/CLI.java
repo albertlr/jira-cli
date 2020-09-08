@@ -45,6 +45,7 @@ public class CLI {
     public static final String ISSUE_E2E = "End-to-end Test";
     public static final String DEPENDS_ON_LINK = "Depends On";
     public static final String TESTED_BY_LINK = "Tests Writing";
+    public static final String COVERS_LINK = "Covers";
 
     public static void execute(String... args) {
         try {
